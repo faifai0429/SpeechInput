@@ -34,6 +34,10 @@ public class MapsFragment extends Fragment {
         setUpMapIfNeeded();
     }
 
+    public GoogleMap getGoogleMap() {
+        return mMap;
+    }
+
     /**
      * Sets up the map if it is possible to do so (i.e., the Google Play services APK is correctly
      * installed) and the map has not already been instantiated.. This will ensure that we only ever

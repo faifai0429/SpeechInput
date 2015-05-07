@@ -53,6 +53,10 @@ public class CameraFragment extends Fragment {
         }
     }
 
+    public CameraManager getCameraManager() {
+        return mCameraManager;
+    }
+
     @Override
     public void onAttach(Activity activity) {
         super.onAttach(activity);

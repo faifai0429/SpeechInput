@@ -7,32 +7,28 @@
     android:background="@drawable/bg_gradient"
     tools:context=".MainActivity$MainFragment">
 
-    <TextView
-        android:id="@+id/txtSpeechInput"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignParentTop="true"
-        android:layout_centerHorizontal="true"
-        android:textColor="@color/white"
-        android:textSize="26dp"
-        android:textStyle="normal" />
 
-    <LinearLayout
-        android:id="@+id/linearlayout"
+    <ImageButton
+        android:id="@+id/btnSpeak"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:background="@null"
+        android:src="@drawable/ico_mic"
         android:layout_alignParentBottom="true"
         android:layout_centerHorizontal="true"
         android:layout_marginBottom="30dp"
         android:gravity="center"
-        android:orientation="vertical" >
+        android:orientation="vertical" />
 
-        <ImageButton
-            android:id="@+id/btnSpeak"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:background="@null"
-            android:src="@drawable/ico_mic" />
-    </LinearLayout>
+    <TextView
+        android:id="@+id/txtSpeechInput"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textColor="@color/white"
+        android:textSize="26dp"
+        android:textStyle="normal"
+        android:layout_above="@+id/btnSpeak"
+        android:layout_centerHorizontal="true"
+        android:layout_marginBottom="165dp" />
 
 </RelativeLayout>

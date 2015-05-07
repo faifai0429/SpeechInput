@@ -1,7 +1,6 @@
 package com.speech.input;
 
-import android.content.Intent;
-import android.support.v4.app.FragmentManager;
+import android.content.res.TypedArray;
 import android.support.v7.app.ActionBarActivity;
 import android.app.Activity;
 import android.support.v7.app.ActionBar;
@@ -13,8 +12,6 @@ import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
-import android.util.ArrayMap;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -22,9 +19,9 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
 import android.widget.ListView;
-import android.widget.Toast;
+
+import java.util.ArrayList;
 
 /**
  * Fragment used for managing interactions for and presentation of a navigation drawer.
@@ -101,16 +98,26 @@ public class NavigationDrawerFragment extends Fragment {
                 selectItem(position);
             }
         });
-        mDrawerListView.setAdapter(new ArrayAdapter<String>(
-                getActionBar().getThemedContext(),
-                android.R.layout.simple_list_item_activated_1,
-                android.R.id.text1,
-                new String[]{
-                        getString(R.string.title_section1),
-                        getString(R.string.title_section2),
-                        getString(R.string.title_section3),
-                        getString(R.string.title_section4),
-                }));
+
+        String[] navMenuTitles = getResources().getStringArray(R.array.nav_drawer_items);
+        TypedArray navMenuIcons = getResources().obtainTypedArray(R.array.nav_drawer_icons);
+        ArrayList<NavDrawerItem> navDrawerItems = new ArrayList<NavDrawerItem>();
+
+        // adding nav drawer items to array
+        // Home
+        navDrawerItems.add(new NavDrawerItem(navMenuTitles[0], navMenuIcons.getResourceId(0, -1)));
+        // Find People
+        navDrawerItems.add(new NavDrawerItem(navMenuTitles[1], navMenuIcons.getResourceId(1, -1)));
+        // Photos
+        navDrawerItems.add(new NavDrawerItem(navMenuTitles[2], navMenuIcons.getResourceId(2, -1)));
+        // Communities, Will add a counter here
+        navDrawerItems.add(new NavDrawerItem(navMenuTitles[3], navMenuIcons.getResourceId(3, -1), true, "22"));
+
+        // Recycle the typed array
+        navMenuIcons.recycle();
+
+        NavDrawerListAdapter adapter = new NavDrawerListAdapter(getActivity().getApplicationContext(), navDrawerItems);
+        mDrawerListView.setAdapter(adapter);
         mDrawerListView.setItemChecked(mCurrentSelectedPosition, true);
         return mDrawerListView;
     }
@@ -137,7 +144,7 @@ public class NavigationDrawerFragment extends Fragment {
         actionBar.setDisplayHomeAsUpEnabled(true);
         actionBar.setHomeButtonEnabled(true);
         actionBar.setDisplayShowHomeEnabled(true);
-        actionBar.setHomeAsUpIndicator(R.mipmap.ic_launcher);
+        actionBar.setHomeAsUpIndicator(android.R.drawable.ic_btn_speak_now);
 
         // ActionBarDrawerToggle ties together the the proper interactions
         // between the navigation drawer and the action bar app icon.
@@ -263,17 +270,6 @@ public class NavigationDrawerFragment extends Fragment {
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         if (mDrawerToggle.onOptionsItemSelected(item)) {
-            return true;
-        }
-
-        if (item.getItemId() == R.id.action_example) {
-            Toast.makeText(getActivity(), "Example action.", Toast.LENGTH_SHORT).show();
-            return true;
-        }
-
-        if(item.getItemId() == R.id.app_settings) {
-            Intent intent = new Intent(getActivity().getApplicationContext(), SettingsActivity.class);
-            startActivity(intent);
             return true;
         }
 

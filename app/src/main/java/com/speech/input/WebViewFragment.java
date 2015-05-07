@@ -19,6 +19,7 @@ import android.widget.Toast;
 public class WebViewFragment extends Fragment {
 
     public final static int SECTION_NUMBER = 2;
+    private WebView webview;
 
     public static WebViewFragment newInstance() {
         return new WebViewFragment();
@@ -35,8 +36,12 @@ public class WebViewFragment extends Fragment {
         setUpWebview();
     }
 
+    public WebView getWebview() {
+        return webview;
+    }
+
     public void setUpWebview() {
-        WebView webview = (WebView) getActivity().findViewById(R.id.webview);
+        webview = (WebView) getActivity().findViewById(R.id.webview);
         webview.getSettings().setJavaScriptEnabled(true);
 
         final Activity activity = getActivity();

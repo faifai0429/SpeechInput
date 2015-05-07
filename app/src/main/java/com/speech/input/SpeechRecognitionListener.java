@@ -65,14 +65,14 @@ public class SpeechRecognitionListener implements RecognitionListener
                 errorMessage = "No recognition result matched.";
                 break;
             case SpeechRecognizer.ERROR_RECOGNIZER_BUSY:
-                errorMessage = "RecognitionService busy.";
+                errorMessage = "Recognition service busy.";
                 break;
             default:
                 errorMessage = "Something went wrong.";
                 break;
         }
 
-        errorMessage = errorMessage + " Please try again.";
+        errorMessage = errorMessage + "\nPlease try again.";
         mFragmentCallback.onError(errorMessage);
         Log.d("SpeechRecognizerListener - onError", "error = " + error);
     }
@@ -89,6 +89,7 @@ public class SpeechRecognitionListener implements RecognitionListener
 
     @Override
     public void onReadyForSpeech(Bundle params) {
+        mFragmentCallback.onReadyForSpeech();
         Log.d("SpeechRecognizerListener", "onReadyForSpeech");
     }
 

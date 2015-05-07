@@ -100,21 +100,21 @@ public class CameraManager implements SurfaceHolder.Callback, Camera.ShutterCall
     public void onPictureTaken(byte[] data, Camera camera) {
         try {
             SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd-HHmmss");
-
-            FileOutputStream out = new FileOutputStream(new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/DCIM/Camera", " picture_" + sdf.format(new Date()) + ".jpg"));
+            String path = Environment.getExternalStorageDirectory().getAbsolutePath() + "/DCIM/Camera";
+            String fileName = "picture_" + sdf.format(new Date()) + ".jpg";
+            FileOutputStream out = new FileOutputStream(new File(path, fileName));
             out.write(data);
             out.flush();
             out.close();
 
-            Toast.makeText(mContext, "File Saved.", Toast.LENGTH_SHORT).show();
+            Toast.makeText(mContext, "File saved on " + path + " named " + fileName, Toast.LENGTH_SHORT).show();
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
         }
 
-        setPreviewing(false);
-        //mCamera.startPreview();
+        mCamera.startPreview();
     }
 
     public void surfaceCreated(SurfaceHolder surfaceHolder) {
@@ -123,7 +123,6 @@ public class CameraManager implements SurfaceHolder.Callback, Camera.ShutterCall
         startPreview();
         if(takePicture) {
             takePicture(null, null);
-            startPreview();
         }
     }
 

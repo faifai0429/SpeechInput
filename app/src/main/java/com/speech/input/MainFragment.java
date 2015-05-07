@@ -1,19 +1,14 @@
 package com.speech.input;
 
 import android.app.Activity;
-import android.content.Intent;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.view.LayoutInflater;
-import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageButton;
 import android.widget.TextView;
-
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public class MainFragment extends Fragment{
 

@@ -29,6 +29,8 @@
         android:textStyle="normal"
         android:layout_above="@+id/btnSpeak"
         android:layout_centerHorizontal="true"
-        android:layout_marginBottom="165dp" />
+        android:layout_marginBottom="165dp"
+        android:text="@string/defaultSpeechText"
+    />
 
 </RelativeLayout>

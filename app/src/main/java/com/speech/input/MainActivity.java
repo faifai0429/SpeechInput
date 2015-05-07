@@ -1,24 +1,27 @@
 package com.speech.input;
 
+import android.app.FragmentTransaction;
+import android.content.ActivityNotFoundException;
 import android.content.Intent;
-import android.content.res.TypedArray;
-import android.graphics.drawable.Drawable;
+import android.database.Cursor;
+import android.net.Uri;
+import android.preference.PreferenceFragment;
+import android.provider.ContactsContract;
 import android.support.v7.app.ActionBarActivity;
 import android.support.v7.app.ActionBar;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
-import android.support.v4.util.ArrayMap;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.support.v4.widget.DrawerLayout;
-import android.view.Window;
+import android.widget.Toast;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class MainActivity extends ActionBarActivity
-        implements NavigationDrawerFragment.NavigationDrawerCallbacks {
+public class MainActivity extends ActionBarActivity implements NavigationDrawerFragment.NavigationDrawerCallbacks {
 
     /**
      * Fragment managing the behaviors, interactions and presentation of the navigation drawer.
@@ -33,9 +36,8 @@ public class MainActivity extends ActionBarActivity
     private int mIcon;
 
     private Fragment mFragment;
-    private Fragment mMainFragment;
-    private boolean is_listening = false;
-    private Intent mSpeechRecognitionIntent;
+    private MainFragment mMainFragment;
+    private SpeechRecognition mSpeechRecognition;
     private int mFragmentDisplaying = MainFragment.SECTION_NUMBER;
 
     @Override
@@ -56,8 +58,8 @@ public class MainActivity extends ActionBarActivity
     @Override
     public void onDestroy() {
         super.onDestroy();
-        if(mSpeechRecognitionIntent!=null) {
-            stopService(mSpeechRecognitionIntent);
+        if(mSpeechRecognition!=null) {
+            mSpeechRecognition.getSpeechRecognizer().destroy();
         }
     }
 
@@ -65,16 +67,12 @@ public class MainActivity extends ActionBarActivity
         return mNavigationDrawerFragment;
     }
 
-    @Override
-    public void onNavigationDrawerItemSelected(int position) {
-        // update the main content by replacing fragments
-        FragmentManager fragmentManager = getSupportFragmentManager();
-
+    public boolean setReplaceFragment(int position) {
         switch(position) {
             default:
             case MainFragment.SECTION_NUMBER:
                 mFragment = MainFragment.newInstance();
-                mMainFragment = mFragment;
+                mMainFragment = (MainFragment) mFragment;
                 break;
             case MapsFragment.SECTION_NUMBER:
                 mFragment = MapsFragment.newInstance();
@@ -85,63 +83,51 @@ public class MainActivity extends ActionBarActivity
             case CameraFragment.SECTION_NUMBER:
                 mFragment = CameraFragment.newInstance();
                 break;
+            case 4:
+                Intent dialIntent = new Intent(Intent.ACTION_DIAL);
+                //callIntent.setData(Uri.parse("tel:" + c.getString(0)));
+                startActivity(dialIntent);
+                return false;
+            case 5:
+                Intent smsIntent = new Intent(Intent.ACTION_VIEW);
+                smsIntent.setType("vnd.android-dir/mms-sms");
+                smsIntent.putExtra("address", "Edit the number");
+                smsIntent.putExtra("sms_body","");
+                startActivity(smsIntent);
+                return false;
+            case SettingsFragment.SECTION_NUMBER:
+                mFragment = SettingsFragment.newInstance();
+                break;
         }
 
-        fragmentManager.beginTransaction().replace(R.id.container, mFragment).commit();
+        return true;
+    }
 
-        onSectionAttached(position);
+    @Override
+    public void onNavigationDrawerItemSelected(int position) {
+        // update the main content by replacing fragments
+        FragmentManager fragmentManager = getSupportFragmentManager();
+        if(setReplaceFragment(position)) {
+            fragmentManager.beginTransaction().replace(R.id.container, mFragment).commit();
+            onSectionAttached(position);
+        }
     }
 
     @Override
     public void onNavigationDrawerItemSelected(int position, Bundle bundle) {
         // update the main content by replacing fragments
         FragmentManager fragmentManager = getSupportFragmentManager();
-
-        switch(position) {
-            default:
-            case MainFragment.SECTION_NUMBER:
-                mFragment = MainFragment.newInstance();
-                mMainFragment = mFragment;
-                break;
-            case MapsFragment.SECTION_NUMBER:
-                mFragment = MapsFragment.newInstance();
-                break;
-            case WebViewFragment.SECTION_NUMBER:
-                mFragment = WebViewFragment.newInstance();
-                break;
-            case CameraFragment.SECTION_NUMBER:
-                mFragment = CameraFragment.newInstance();
-                break;
+        if(!setReplaceFragment(position)) {
+            mFragment.setArguments(bundle);
+            fragmentManager.beginTransaction().replace(R.id.container, mFragment).commit();
+            onSectionAttached(position);
         }
-
-        mFragment.setArguments(bundle);
-        fragmentManager.beginTransaction().replace(R.id.container, mFragment).commit();
-
-        onSectionAttached(position);
     }
 
     public void onSectionAttached(int position) {
         ActionBar actionBar = getSupportActionBar();
-
-        switch (position) {
-            case MainFragment.SECTION_NUMBER:
-                mTitle = getString(R.string.title_section1);
-                mIcon = android.R.drawable.ic_btn_speak_now;
-                break;
-            case MapsFragment.SECTION_NUMBER:
-                mTitle = getString(R.string.title_section2);
-                mIcon = android.R.drawable.ic_menu_mapmode;
-                break;
-            case WebViewFragment.SECTION_NUMBER:
-                mTitle = getString(R.string.title_section3);
-                mIcon = android.R.drawable.ic_menu_search;
-                break;
-            case CameraFragment.SECTION_NUMBER:
-                mTitle = getString(R.string.title_section4);
-                mIcon = android.R.drawable.ic_menu_camera;
-                break;
-        }
-
+        mTitle = getResources().getStringArray(R.array.nav_drawer_items)[position];
+        mIcon = getResources().obtainTypedArray(R.array.nav_drawer_icons).getResourceId(position, -1);
         actionBar.setTitle(mTitle);
         actionBar.setHomeAsUpIndicator(mIcon);
         mFragmentDisplaying = position;
@@ -153,10 +139,6 @@ public class MainActivity extends ActionBarActivity
 
     public int getFragmentDisplaying() {
         return mFragmentDisplaying;
-    }
-
-    public Menu getMenu() {
-        return mMenu;
     }
 
     public void restoreActionBar() {
@@ -203,97 +185,144 @@ public class MainActivity extends ActionBarActivity
     }
 
     public void setUpSpeechRecognition() {
-        if (!is_listening) {
-            mSpeechRecognitionIntent = new Intent(this, SpeechRecognitionService.class);
-            startService(mSpeechRecognitionIntent);
+        if (mSpeechRecognition==null) {
+            mSpeechRecognition = new SpeechRecognition(this);
 
-            SpeechRecognitionService.setServiceListener(new SpeechRecognitionService.SpeechRecognitionServiceCallback() {
+            mSpeechRecognition.setServiceListener(new SpeechRecognition.SpeechRecognitionServiceCallback() {
                 @Override
                 public void onReadyForSpeech() {
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            is_listening = true;
-                            getMenu().findItem(R.id.speak_status).setIcon(android.R.drawable.presence_online);
-                            ((MainFragment) mMainFragment).setOutputText("Talk to me");
-                        }
-                    });
+                    mMenu.findItem(R.id.speak_status).setIcon(android.R.drawable.presence_online);
+                    mMainFragment.setOutputText("Talk to me");
                 }
 
                 @Override
                 public void onBeginningOfSpeech() {
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            is_listening = true;
-                            getMenu().findItem(R.id.speak_status).setIcon(android.R.drawable.presence_busy);
-                            ((MainFragment) mMainFragment).setOutputText("Listening...");
-                        }
-                    });
+                    mMenu.findItem(R.id.speak_status).setIcon(android.R.drawable.presence_busy);
+                    mMainFragment.setOutputText("Listening...");
                 }
 
                 @Override
                 public void onEndOfSpeech() {
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            getMenu().findItem(R.id.speak_status).setIcon(android.R.drawable.presence_away);
-                            ((MainFragment) mMainFragment).setOutputText("Processing...");
-                        }
-                    });
+                    mMenu.findItem(R.id.speak_status).setIcon(android.R.drawable.presence_away);
+                    mMainFragment.setOutputText("Processing...");
                 }
 
                 public void onResults(final String result) {
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            getMenu().findItem(R.id.speak_status).setIcon(android.R.drawable.presence_invisible);
-                            processResult(result);
-                        }
-                    });
+                    mMenu.findItem(R.id.speak_status).setIcon(android.R.drawable.presence_invisible);
+                    processResult(result);
                 }
 
                 public void onError(final String error) {
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            getMenu().findItem(R.id.speak_status).setIcon(android.R.drawable.presence_offline);
-                            ((MainFragment) mMainFragment).setOutputText(error);
-                        }
-                    });
+                    mMenu.findItem(R.id.speak_status).setIcon(android.R.drawable.presence_offline);
+                    mMainFragment.setOutputText(error);
                 }
             });
+        } else if(!mSpeechRecognition.autoRestartListening()) {
+            mSpeechRecognition.setAutoRestartListening(true);
+        }
+    }
+
+    public void phoneCall(String result) {
+        Matcher matcher = Pattern.compile(".*?call(.*)").matcher(result);
+        if(matcher.find()) {
+            StringBuilder str_builder =  new StringBuilder(matcher.group(1).trim().toLowerCase());
+            str_builder.setCharAt(0, Character.toUpperCase(str_builder.charAt(0)));
+            String name = str_builder.toString();
+            String selection = ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME+" = '" + name + "'";
+            String[] projection = new String[] { ContactsContract.CommonDataKinds.Phone.NUMBER};
+            Cursor c = getApplicationContext().getContentResolver().query(ContactsContract.CommonDataKinds.Phone.CONTENT_URI, projection, selection, null, null);
+            if (c.moveToFirst()) {
+                try {
+                    Intent callIntent = new Intent(Intent.ACTION_CALL);
+                    callIntent.setData(Uri.parse("tel:" + c.getString(0)));
+                    startActivity(callIntent);
+                    mMainFragment.setOutputText(getString(R.string.defaultSpeechText));
+                } catch (ActivityNotFoundException e) {
+                    mMainFragment.setOutputText("Error in your phone call" + e.getMessage());
+                }
+            } else {
+                mMainFragment.setOutputText("Cannot find the contact.\nPlease try again.");
+            }
+            c.close();
+        }
+    }
+
+    public void sms(String result) {
+        Matcher matcher = Pattern.compile(".*?(sms|tell) (.*?) that (.*)").matcher(result);
+        if(matcher.find()) {
+            String phoneNumber = "0";
+            String sms_body =  matcher.group(3).trim();
+            sms_body = sms_body.substring(0,1).toUpperCase() + sms_body.substring(1);
+
+            StringBuilder str_builder =  new StringBuilder(matcher.group(2).trim().toLowerCase());
+            str_builder.setCharAt(0, Character.toUpperCase(str_builder.charAt(0)));
+            String name = str_builder.toString();
+
+            String selection = ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME+" = '" + name + "'";
+            String[] projection = new String[] { ContactsContract.CommonDataKinds.Phone.NUMBER};
+            Cursor c = getApplicationContext().getContentResolver().query(ContactsContract.CommonDataKinds.Phone.CONTENT_URI, projection, selection, null, null);
+
+            if (c.moveToFirst()) {
+                phoneNumber =  c.getString(0);
+            }
+
+            Intent smsIntent = new Intent(Intent.ACTION_VIEW);
+            smsIntent.setType("vnd.android-dir/mms-sms");
+            smsIntent.putExtra("address", phoneNumber);
+            smsIntent.putExtra("sms_body", sms_body);
+            startActivity(smsIntent);
+
+            mMainFragment.setOutputText(getString(R.string.defaultSpeechText));
+        }
+    }
+
+    public void search(String result) {
+        Matcher matcher = Pattern.compile(".*?search(.*)").matcher(result);
+        if(matcher.find()) {
+            if(getFragmentDisplaying()==WebViewFragment.SECTION_NUMBER) {
+                String url = "http://www.google.com/#q=" + matcher.group(1).trim();
+                ((WebViewFragment) getCurrentFragmentInstance()).loadUrl(url);
+            } else {
+                Bundle bundle = new Bundle();
+                bundle.putString("query", matcher.group(1).trim());
+                getNavigationDrawerFragment().selectItem(WebViewFragment.SECTION_NUMBER, bundle);
+            }
         }
     }
 
     public void processResult(String response) {
         String result = response.toLowerCase();
+        boolean auto = true;
 
         if(result.matches(".*?(open|launch).*?camera.*")) {
-            getNavigationDrawerFragment().selectItem(CameraFragment.SECTION_NUMBER);
+            mNavigationDrawerFragment.selectItem(CameraFragment.SECTION_NUMBER);
         } else if(result.matches(".*?(take|make).*?(picture|photo).*")) {
             if(getFragmentDisplaying()==CameraFragment.SECTION_NUMBER) {
-                ((CameraFragment) getCurrentFragmentInstance()).getCameraManager().takePicture(null, null);
+                CameraManager cameraManager = ((CameraFragment) getCurrentFragmentInstance()).getCameraManager();
+                cameraManager.takePicture(null, null);
             } else {
                 Bundle bundle = new Bundle();
                 bundle.putBoolean("takePicture", true);
-                getNavigationDrawerFragment().selectItem(CameraFragment.SECTION_NUMBER, bundle);
+                mNavigationDrawerFragment.selectItem(CameraFragment.SECTION_NUMBER, bundle);
             }
         } else if(result.matches(".*?(open|launch).*?(map|maps).*")) {
-            getNavigationDrawerFragment().selectItem(MapsFragment.SECTION_NUMBER);
+            mNavigationDrawerFragment.selectItem(MapsFragment.SECTION_NUMBER);
         } else if(result.matches(".*?setting.*")) {
-            Intent intent = new Intent(getApplicationContext(), SettingsActivity.class);
-            startActivity(intent);
+            mNavigationDrawerFragment.selectItem(SettingsFragment.SECTION_NUMBER);
+        } else if(result.matches(".*?call(.*)")) {
+            phoneCall(result);
+            auto = false;
+        } else if(result.matches(".*?(sms|tell) (.*?) that (.*)")) {
+            sms(result);
+            auto = false;
+        } else if(result.matches(".*?search(.*)")){
+            search(result);
         } else {
-            Matcher matcher = Pattern.compile(".*?search(.*)").matcher(result);
-            if(matcher.find()) {
-                Bundle bundle = new Bundle();
-                bundle.putString("query", matcher.group(1));
-                getNavigationDrawerFragment().selectItem(WebViewFragment.SECTION_NUMBER, bundle);
-            }
-        }
+            mMainFragment.setOutputText(response);
+            auto = false;
+         }
 
-        ((MainFragment) mMainFragment).setOutputText(response);
+        mSpeechRecognition.setAutoRestartListening(auto);
     }
 
 }

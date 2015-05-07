@@ -93,7 +93,9 @@ public class CameraManager implements SurfaceHolder.Callback, Camera.ShutterCall
     }
 
     public void takePicture(Camera.PictureCallback raw, Camera.PictureCallback postview) {
-        mCamera.takePicture(this, raw, postview, this);
+        if(mCamera!=null) {
+            mCamera.takePicture(this, raw, postview, this);
+        }
     }
 
     @Override

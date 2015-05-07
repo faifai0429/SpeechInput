@@ -70,6 +70,10 @@ public class WebViewFragment extends Fragment {
         }
     }
 
+    public void loadUrl(String url) {
+        webview.loadUrl(url);
+    }
+
     @Override
     public void onAttach(Activity activity) {
         super.onAttach(activity);

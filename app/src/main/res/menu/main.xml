@@ -1,7 +1,7 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools" tools:context=".MainActivity">
-    <item android:id="@+id/speak_status" android:title="Speak" android:icon="@android:drawable/presence_invisible"
+    <item android:id="@+id/speak_status" android:title="Status" android:icon="@android:drawable/presence_invisible"
         app:showAsAction="withText|ifRoom" />
     <item android:id="@+id/app_settings" android:title="@string/app_settings" android:icon="@android:drawable/ic_menu_manage"
         app:showAsAction="withText|ifRoom" />

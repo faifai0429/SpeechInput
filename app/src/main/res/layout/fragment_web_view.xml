@@ -5,9 +5,33 @@
     android:padding="0dp"
     tools:context=".WebViewFragment">
 
+    <EditText
+        android:id="@+id/addressBar"
+        android:layout_width="match_parent"
+        android:layout_height="45dp"
+        android:padding="10dp"
+        android:hint="Address"
+        android:singleLine="true"
+        android:lines="1"
+        android:maxLines="1"
+        android:background="@null" />
+
+    <ProgressBar
+        android:id="@+id/progressBar"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="match_parent"
+        android:layout_height="5dp"
+        android:layout_marginTop="35dp"
+        android:max="100"
+        android:visibility="visible" />
+
     <WebView
         android:id="@+id/webview"
         android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        android:layout_height="match_parent"
+        android:layout_marginTop="40dp"
+        android:layout_marginBottom="0dp"
+        android:layout_marginLeft="0dp"
+        android:layout_marginRight="0dp"/>
 
 </RelativeLayout>

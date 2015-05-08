@@ -35,7 +35,7 @@
         <item>@android:drawable/ic_menu_mapmode</item>
         <item>@android:drawable/ic_menu_search</item>
         <item>@android:drawable/ic_menu_camera</item>
-        <item>@android:drawable/stat_sys_phone_call_forward</item>
+        <item>@android:drawable/ic_menu_call</item>
         <item>@android:drawable/ic_menu_send</item>
         <item>@android:drawable/ic_menu_manage</item>
     </array>

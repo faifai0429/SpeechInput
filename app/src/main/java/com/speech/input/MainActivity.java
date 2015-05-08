@@ -197,13 +197,13 @@ public class MainActivity extends ActionBarActivity implements NavigationDrawerF
 
                 @Override
                 public void onBeginningOfSpeech() {
-                    mMenu.findItem(R.id.speak_status).setIcon(android.R.drawable.presence_busy);
+                    mMenu.findItem(R.id.speak_status).setIcon(android.R.drawable.presence_away);
                     mMainFragment.setOutputText("Listening...");
                 }
 
                 @Override
                 public void onEndOfSpeech() {
-                    mMenu.findItem(R.id.speak_status).setIcon(android.R.drawable.presence_away);
+                    mMenu.findItem(R.id.speak_status).setIcon(android.R.drawable.presence_busy);
                     mMainFragment.setOutputText("Processing...");
                 }
 
@@ -215,6 +215,9 @@ public class MainActivity extends ActionBarActivity implements NavigationDrawerF
                 public void onError(final String error) {
                     mMenu.findItem(R.id.speak_status).setIcon(android.R.drawable.presence_offline);
                     mMainFragment.setOutputText(error);
+                    if(getFragmentDisplaying() == MainFragment.SECTION_NUMBER) {
+                        mSpeechRecognition.setAutoRestartListening(false);
+                    }
                 }
             });
         } else if(!mSpeechRecognition.autoRestartListening()) {
@@ -318,8 +321,10 @@ public class MainActivity extends ActionBarActivity implements NavigationDrawerF
         } else if(result.matches(".*?search(.*)")){
             search(result);
         } else {
+            if(getFragmentDisplaying() == MainFragment.SECTION_NUMBER) {
+                auto = false;
+            }
             mMainFragment.setOutputText(response);
-            auto = false;
          }
 
         mSpeechRecognition.setAutoRestartListening(auto);

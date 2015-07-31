@@ -2,11 +2,16 @@ package com.speech.input;
 
 import android.app.FragmentTransaction;
 import android.content.ActivityNotFoundException;
+import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.net.Uri;
 import android.preference.PreferenceFragment;
+import android.preference.PreferenceManager;
 import android.provider.ContactsContract;
+import android.speech.SpeechRecognizer;
 import android.support.v7.app.ActionBarActivity;
 import android.support.v7.app.ActionBar;
 import android.support.v4.app.Fragment;
@@ -75,7 +80,27 @@ public class MainActivity extends ActionBarActivity implements NavigationDrawerF
                 mMainFragment = (MainFragment) mFragment;
                 break;
             case MapsFragment.SECTION_NUMBER:
-                mFragment = MapsFragment.newInstance();
+                try {
+                    if(getPackageManager().getPackageInfo("com.google.android.gms", 0 ).versionCode >= 7327000) {
+                        mFragment = MapsFragment.newInstance();
+                    } else {
+                        if(mFragmentDisplaying != MainFragment.SECTION_NUMBER) {
+                            mFragment = MainFragment.newInstance();
+                            mMainFragment.setOutputText(getString(R.string.update_google_play_service));
+                        } else {
+                            mMainFragment.setOutputText(getString(R.string.update_google_play_service));
+                            return false;
+                        }
+                    }
+                } catch(PackageManager.NameNotFoundException e) {
+                    if(mFragmentDisplaying != MainFragment.SECTION_NUMBER) {
+                        mFragment = MainFragment.newInstance();
+                        mMainFragment.setOutputText(e.toString());
+                    } else {
+                        mMainFragment.setOutputText(e.toString());
+                        return false;
+                    }
+                }
                 break;
             case WebViewFragment.SECTION_NUMBER:
                 mFragment = WebViewFragment.newInstance();
@@ -96,7 +121,8 @@ public class MainActivity extends ActionBarActivity implements NavigationDrawerF
                 startActivity(smsIntent);
                 return false;
             case SettingsFragment.SECTION_NUMBER:
-                mFragment = SettingsFragment.newInstance();
+                Intent intent = new Intent(getApplicationContext(), SettingsActivity.class);
+                startActivity(intent);
                 break;
         }
 
@@ -106,8 +132,8 @@ public class MainActivity extends ActionBarActivity implements NavigationDrawerF
     @Override
     public void onNavigationDrawerItemSelected(int position) {
         // update the main content by replacing fragments
-        FragmentManager fragmentManager = getSupportFragmentManager();
         if(setReplaceFragment(position)) {
+            FragmentManager fragmentManager = getSupportFragmentManager();
             fragmentManager.beginTransaction().replace(R.id.container, mFragment).commit();
             onSectionAttached(position);
         }
@@ -116,8 +142,8 @@ public class MainActivity extends ActionBarActivity implements NavigationDrawerF
     @Override
     public void onNavigationDrawerItemSelected(int position, Bundle bundle) {
         // update the main content by replacing fragments
-        FragmentManager fragmentManager = getSupportFragmentManager();
-        if(!setReplaceFragment(position)) {
+        if(setReplaceFragment(position)) {
+            FragmentManager fragmentManager = getSupportFragmentManager();
             mFragment.setArguments(bundle);
             fragmentManager.beginTransaction().replace(R.id.container, mFragment).commit();
             onSectionAttached(position);
@@ -133,12 +159,12 @@ public class MainActivity extends ActionBarActivity implements NavigationDrawerF
         mFragmentDisplaying = position;
     }
 
-    public Fragment getCurrentFragmentInstance() {
-        return mFragment;
-    }
-
     public int getFragmentDisplaying() {
         return mFragmentDisplaying;
+    }
+
+    public MainFragment getMainFragment() {
+        return mMainFragment;
     }
 
     public void restoreActionBar() {
@@ -185,7 +211,7 @@ public class MainActivity extends ActionBarActivity implements NavigationDrawerF
     }
 
     public void setUpSpeechRecognition() {
-        if (mSpeechRecognition==null) {
+        if (mSpeechRecognition==null && SpeechRecognizer.isRecognitionAvailable(getApplicationContext())) {
             mSpeechRecognition = new SpeechRecognition(this);
 
             mSpeechRecognition.setServiceListener(new SpeechRecognition.SpeechRecognitionServiceCallback() {
@@ -215,13 +241,12 @@ public class MainActivity extends ActionBarActivity implements NavigationDrawerF
                 public void onError(final String error) {
                     mMenu.findItem(R.id.speak_status).setIcon(android.R.drawable.presence_offline);
                     mMainFragment.setOutputText(error);
-                    if(getFragmentDisplaying() == MainFragment.SECTION_NUMBER) {
-                        mSpeechRecognition.setAutoRestartListening(false);
-                    }
                 }
             });
-        } else if(!mSpeechRecognition.autoRestartListening()) {
-            mSpeechRecognition.setAutoRestartListening(true);
+       } else if(SpeechRecognizer.isRecognitionAvailable(getApplicationContext())){
+            mSpeechRecognition.setRestartListening();
+       } else {
+            mMainFragment.setOutputText(getString(R.string.speech_not_supported));
         }
     }
 
@@ -251,7 +276,7 @@ public class MainActivity extends ActionBarActivity implements NavigationDrawerF
     }
 
     public void sms(String result) {
-        Matcher matcher = Pattern.compile(".*?(sms|tell) (.*?) that (.*)").matcher(result);
+        Matcher matcher = Pattern.compile(".*?(sms|tell)(.*?)that(.*)").matcher(result);
         if(matcher.find()) {
             String phoneNumber = "0";
             String sms_body =  matcher.group(3).trim();
@@ -282,26 +307,25 @@ public class MainActivity extends ActionBarActivity implements NavigationDrawerF
     public void search(String result) {
         Matcher matcher = Pattern.compile(".*?search(.*)").matcher(result);
         if(matcher.find()) {
-            if(getFragmentDisplaying()==WebViewFragment.SECTION_NUMBER) {
+            if(mFragmentDisplaying==WebViewFragment.SECTION_NUMBER) {
                 String url = "http://www.google.com/#q=" + matcher.group(1).trim();
-                ((WebViewFragment) getCurrentFragmentInstance()).loadUrl(url);
+                ((WebViewFragment) mFragment).loadUrl(url);
             } else {
                 Bundle bundle = new Bundle();
                 bundle.putString("query", matcher.group(1).trim());
-                getNavigationDrawerFragment().selectItem(WebViewFragment.SECTION_NUMBER, bundle);
+                mNavigationDrawerFragment.selectItem(WebViewFragment.SECTION_NUMBER, bundle);
             }
         }
     }
 
     public void processResult(String response) {
         String result = response.toLowerCase();
-        boolean auto = true;
 
         if(result.matches(".*?(open|launch).*?camera.*")) {
             mNavigationDrawerFragment.selectItem(CameraFragment.SECTION_NUMBER);
         } else if(result.matches(".*?(take|make).*?(picture|photo).*")) {
-            if(getFragmentDisplaying()==CameraFragment.SECTION_NUMBER) {
-                CameraManager cameraManager = ((CameraFragment) getCurrentFragmentInstance()).getCameraManager();
+            if(mFragmentDisplaying==CameraFragment.SECTION_NUMBER) {
+                CameraManager cameraManager = ((CameraFragment) mFragment).getCameraManager();
                 cameraManager.takePicture(null, null);
             } else {
                 Bundle bundle = new Bundle();
@@ -311,23 +335,18 @@ public class MainActivity extends ActionBarActivity implements NavigationDrawerF
         } else if(result.matches(".*?(open|launch).*?(map|maps).*")) {
             mNavigationDrawerFragment.selectItem(MapsFragment.SECTION_NUMBER);
         } else if(result.matches(".*?setting.*")) {
-            mNavigationDrawerFragment.selectItem(SettingsFragment.SECTION_NUMBER);
+            Intent intent = new Intent(getApplicationContext(), SettingsActivity.class);
+            startActivity(intent);
+            mMainFragment.setOutputText(getString(R.string.defaultSpeechText));
         } else if(result.matches(".*?call(.*)")) {
             phoneCall(result);
-            auto = false;
-        } else if(result.matches(".*?(sms|tell) (.*?) that (.*)")) {
+        } else if(result.matches(".*?(sms|tell)(.*?)that(.*)")) {
             sms(result);
-            auto = false;
         } else if(result.matches(".*?search(.*)")){
             search(result);
         } else {
-            if(getFragmentDisplaying() == MainFragment.SECTION_NUMBER) {
-                auto = false;
-            }
             mMainFragment.setOutputText(response);
          }
-
-        mSpeechRecognition.setAutoRestartListening(auto);
     }
 
 }

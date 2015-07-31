@@ -1,13 +1,11 @@
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
-
+    <PreferenceCategory android:title="@string/pref_header_general">
     <CheckBoxPreference
-        android:key="example_checkbox"
-        android:title="@string/pref_title_social_recommendations"
-        android:summary="@string/pref_description_social_recommendations"
+        android:key="auto_relistening"
+        android:title="@string/pref_title_auto_relistening"
         android:defaultValue="true" />
 
-    <!-- NOTE: EditTextPreference accepts EditText attributes. -->
-    <!-- NOTE: EditTextPreference's summary should be set to its value by the activity code. -->
+  <!--
     <EditTextPreference
         android:key="example_text"
         android:title="@string/pref_title_display_name"
@@ -18,9 +16,6 @@
         android:singleLine="true"
         android:maxLines="1" />
 
-    <!-- NOTE: Hide buttons to simplify the UI. Users can touch outside the dialog to
-         dismiss it. -->
-    <!-- NOTE: ListPreference's summary should be set to its value by the activity code. -->
     <ListPreference
         android:key="example_list"
         android:title="@string/pref_title_add_friends_to_messages"
@@ -29,5 +24,6 @@
         android:entryValues="@array/pref_example_list_values"
         android:negativeButtonText="@null"
         android:positiveButtonText="@null" />
-
+    !-->
+    </PreferenceCategory>
 </PreferenceScreen>

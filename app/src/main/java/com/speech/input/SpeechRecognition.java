@@ -1,12 +1,17 @@
 package com.speech.input;
 
 import android.app.Activity;
+import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.media.AudioManager;
+import android.preference.PreferenceManager;
 import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
 import android.util.Log;
+
+import java.io.IOException;
 
 public class SpeechRecognition{
 
@@ -23,6 +28,7 @@ public class SpeechRecognition{
     private SpeechRecognitionListener mSpeechRecognitionListener;
     private SpeechRecognizer mSpeechRecognizer;
     private Intent mSpeechRecognizerIntent;
+    private SharedPreferences preferences;
     private boolean is_listening = false;
     private boolean auto_restart_listening = true;
 
@@ -43,17 +49,13 @@ public class SpeechRecognition{
         return mSpeechRecognizer;
     }
 
-    public boolean autoRestartListening() {
-        return auto_restart_listening;
-    }
     public void resetSpeechRecognition() {
         mSpeechRecognizer.destroy();
         setUpSpeechRecognition();
     }
 
-    public void setAutoRestartListening(boolean is_auto_restart) {
-        auto_restart_listening = is_auto_restart;
-        if(auto_restart_listening &&!is_listening) {
+    public void setRestartListening() {
+        if(!is_listening) {
             mSpeechRecognizer.startListening(mSpeechRecognizerIntent);
             is_listening = true;
         }
@@ -64,6 +66,8 @@ public class SpeechRecognition{
         mSpeechRecognizerIntent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
         mSpeechRecognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
         mSpeechRecognizerIntent.putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, mActivity.getPackageName());
+
+        preferences = PreferenceManager.getDefaultSharedPreferences(mActivity.getApplicationContext());
 
         mSpeechRecognitionListener = new SpeechRecognitionListener(mSpeechRecognizer, mSpeechRecognizerIntent, new FragmentCallback() {
             @Override
@@ -95,7 +99,7 @@ public class SpeechRecognition{
             public void onResults(String result) {
                 if(getSpeechRecognitionServiceCallback()!=null) {
                     getSpeechRecognitionServiceCallback().onResults(result);
-                    if(auto_restart_listening && !is_listening) {
+                    if(preferences.getBoolean("auto_relistening", true) && ((MainActivity) mActivity).getFragmentDisplaying() != MainFragment.SECTION_NUMBER && !is_listening) {
                         mSpeechRecognizer.startListening(mSpeechRecognizerIntent);
                         is_listening = true;
                     }
@@ -106,7 +110,7 @@ public class SpeechRecognition{
                 if(getSpeechRecognitionServiceCallback()!=null) {
                     getSpeechRecognitionServiceCallback().onError(error);
                     is_listening = false;
-                    if(auto_restart_listening && !is_listening) {
+                    if(preferences.getBoolean("auto_relistening", true) && ((MainActivity) mActivity).getFragmentDisplaying() != MainFragment.SECTION_NUMBER && !is_listening) {
                         resetSpeechRecognition();
                     }
                 }
